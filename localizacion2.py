@@ -58,61 +58,10 @@ def mostrar(objetivos,ideal,trayectoria):
 def localizacion(balizas, real, ideal, centro, radio, mostrar=False):
   # Buscar la localización más probable del robot, a partir de su sistema
   # sensorial, dentro de una región cuadrada de centro "centro" y lado "2*radio".
-  # imagen: debe ser una matriz con los errores calculados con la rejilla entre el robot ideal y el real
-  imagen = []
-  # Usar únicamente las medidas sensoriales (no acceder directamente a pose/orientación real)
-  realMedida = real.senseDistance(balizas)
-  realAngle  = real.senseAngle(balizas)
 
-  incremento = 0.1
 
-  # Preparar una búsqueda también sobre orientación (no usar real.orientation)
-  n_orients = 36  # p.ej. 10º de resolución
-  orients = np.linspace(-pi, pi, n_orients, endpoint=False)
 
-  # Bucle FOR coordenada Y
-  ys = np.arange(centro[1]-radio, centro[1]+radio+incremento/2, incremento)
-  xs = np.arange(centro[0]-radio, centro[0]+radio+incremento/2, incremento)
 
-  # Valor global mínimo (x,y,orient)
-  minError = float('inf')
-  minX = centro[0]
-  minY = centro[1]
-  minOrient = 0.0
-
-  for y in ys:
-    fila = []
-    for x in xs:
-      # Para cada punto (x,y) probamos varias orientaciones y guardamos la mejor
-      best_cell_error = float('inf')
-      best_cell_orient = 0.0
-      for orient in orients:
-        ideal.set(x, y, orient)
-        # Y calculamos su medida sensorial (usar balizas)
-        idealMedida = ideal.senseDistance(balizas)
-        idealAngle  = ideal.senseAngle(balizas)
-        # Calculamos el error entre la medida ideal y la real
-        error = 0.0
-        for i in range(len(balizas)):
-          error += (realMedida[i] - idealMedida[i])**2
-        # Asegurar diferencia angular mínima (wrap-around)
-        ang_err = realAngle - idealAngle
-        while ang_err > pi: ang_err -= 2*pi
-        while ang_err < -pi: ang_err += 2*pi
-        error += ang_err**2
-        if error < best_cell_error:
-          best_cell_error = error
-          best_cell_orient = orient
-      fila.append(best_cell_error)
-      # Actualizar mínimo global si corresponde
-      if best_cell_error < minError:
-        minError = best_cell_error
-        minX = x
-        minY = y
-        minOrient = best_cell_orient
-    imagen.append(fila)
-  # Fijamos el robot ideal en la posición y orientación de mínimo error
-  ideal.set(minX, minY, minOrient)
 
   if mostrar:
     plt.figure('Localizacion')
@@ -129,21 +78,6 @@ def localizacion(balizas, real, ideal, centro, radio, mostrar=False):
     plt.plot(real.x, real.y, 'D',c='#00ff00',ms=10,mew=2)
     plt.show()
 
-def estimate_position_from_distances(landmarks, distances):
-    # usa la primera baliza como referencia
-    x0, y0 = landmarks[0]
-    d0 = distances[0]
-    A = []
-    b = []
-    for (xi, yi), di in zip(landmarks[1:], distances[1:]):
-        A.append([2*(xi - x0), 2*(yi - y0)])
-        b.append(d0*d0 - di*di + xi*xi - x0*x0 + yi*yi - y0*y0)
-    A = np.array(A)
-    b = np.array(b)
-    # solución por mínimos cuadrados
-    sol, _, _, _ = np.linalg.lstsq(A, b, rcond=None)
-    return sol  # array([x, y])
-
 # ******************************************************************************
 
 # Definición del robot:
@@ -153,7 +87,6 @@ V_LINEAL  = .7         # Velocidad lineal    (m/s)
 V_ANGULAR = 140.       # Velocidad angular   (º/s)
 FPS       = 10.        # Resolución temporal (fps)
 MOSTRAR   = True       # Si se quiere gráficas de localización y trayectorias
-DEVIATION = 0.5        # Umbral (metros). Si la desviación real-ideal supera esto, relocaliza
 
 HOLONOMICO = 1
 GIROPARADO = 0
@@ -194,8 +127,7 @@ random.seed(0)
 #random.seed(time.time())
 tic = time.time()
 
-# Localización inicial, depende de donde me digan que está el robot real
-localizacion(objetivos, real, ideal, centro=[2.0,2.0], radio=3, mostrar=MOSTRAR)
+# Localización inicial
 
 tray_ideal = [ideal.pose()]  # Trayectoria percibida
 
@@ -221,13 +153,8 @@ for punto in objetivos:
       real.move_triciclo(w,v,LONGITUD)
     tray_real.append(real.pose())
 
-    # Decidir nueva localización ⇒ nuevo ideal / Si la desviación es muy grande se debe relocalizar
-    medidasReales = real.senseDistance(objetivos)            # lista de distancias medidos ahora
-    medidasIdeales = ideal.senseDistance(objetivos)            # lista de distancias medidos ahora
-    error = np.mean(np.abs(np.subtract(medidasReales, medidasIdeales)))
-    if error > DEVIATION:
-      localizacion(objetivos, real, ideal, centro=pose[:2], radio=1, mostrar=MOSTRAR)
-    
+    # Decidir nueva localización ⇒ nuevo ideal
+
     tray_ideal.append(ideal.pose())
 
     if MOSTRAR:
@@ -238,7 +165,6 @@ for punto in objetivos:
     tiempo  += 1
   # Antes de pasar a un nuevo punto apuntamos distancia a este objetivo
   distanciaObjetivos.append(distancia(tray_real[-1], punto))
-
 
 
 toc = time.time()
