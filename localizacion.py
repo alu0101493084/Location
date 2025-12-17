@@ -144,39 +144,31 @@ def estimate_position_from_distances(landmarks, distances):
 # ******************************************************************************
 
 # Definición del robot:
-P_INICIAL = [0.,4.,0.] # Pose inicial (posición y orientacion)
+P_INICIAL = [4.5, -4.5, 180.]       # Pose inicial (posición y orientacion)
 P_INICIAL_IDEAL = [2, 2, 0]  # Pose inicial del ideal
-V_LINEAL  = .7         # Velocidad lineal    (m/s)
-V_ANGULAR = 140.       # Velocidad angular   (º/s)
-FPS       = 10.        # Resolución temporal (fps)
-MOSTRAR   = True       # Si se quiere gráficas de localización y trayectorias
-DEVIATION = 0.5        # Umbral (metros). Si la desviación real-ideal supera esto, relocaliza
+V_LINEAL  = .7               # Velocidad lineal    (m/s)
+V_ANGULAR = 140.             # Velocidad angular   (º/s)
+FPS       = 10.              # Resolución temporal (fps)
+MOSTRAR   = False            # Si se quiere gráficas de localización y trayectorias
+DEVIATION = 0.25             # Umbral (metros). Si la desviación real-ideal supera esto, relocaliza
 
 HOLONOMICO = 1
 GIROPARADO = 0
 LONGITUD   = .2
 
 # Constantes de localización
-INCREMENTO_BUSQUEDA = 0.1   # Resolución espacial de la malla de búsqueda (metros)
-N_ORIENTACIONES = 36        # Número de orientaciones a probar (10º de resolución)
-CENTRO_INICIAL = [2.0, 2.0] # Centro inicial de búsqueda para localización
-RADIO_INICIAL = 3           # Radio inicial de búsqueda (cuadrado de lado 2*radio)
-RADIO_RELOCALIZACION = 1    # Radio de búsqueda durante relocalización dinámica
+INCREMENTO_BUSQUEDA = 0.5    # Resolución espacial de la malla de búsqueda (metros)
+N_ORIENTACIONES = 10         # Número de orientaciones a probar (10º de resolución)
+CENTRO_INICIAL = [2.0, 2.0]  # Centro inicial de búsqueda para localización
+RADIO_INICIAL = 2            # Radio inicial de búsqueda
+RADIO_RELOCALIZACION = 1     # Radio de búsqueda durante relocalización dinámica
 
 
 # Definición de trayectorias:
-trayectorias = [
-    [[1,3]],
-    [[0,2],[4,2]],
-    [[2,4],[4,0],[0,0]],
-    [[2,4],[2,0],[0,2],[4,2]],
-    [[2+2*sin(.8*pi*i),2+2*cos(.8*pi*i)] for i in range(5)]
-    ]
+trayectorias = [[[4.2, 4.2], [2., -3.5], [-4., 4.], [-3.5, -0.5], [2., 1.5], [-2.5, -4.]]]
 
 # Definición de los puntos objetivo:
-if len(sys.argv)<2 or int(sys.argv[1])<0 or int(sys.argv[1])>=len(trayectorias):
-  sys.exit(f"{sys.argv[0]} <indice entre 0 y {len(trayectorias)-1}>")
-objetivos = trayectorias[int(sys.argv[1])]
+objetivos = trayectorias[0]
 
 # Definición de constantes:
 EPSILON = .1                # Umbral de distancia
@@ -188,7 +180,7 @@ ideal.set_noise(0,0,0)   # Ruido lineal / radial / de sensado
 ideal.set(*P_INICIAL_IDEAL)     # operador 'splat'
 
 real = robot()
-real.set_noise(.01,.01,.1)  # Ruido lineal / radial / de sensado
+real.set_noise(.02,.03,.15)  # Ruido lineal / radial / de sensado
 real.set(*P_INICIAL)
 
 tray_real = [real.pose()]     # Trayectoria seguida
