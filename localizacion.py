@@ -64,15 +64,12 @@ def localizacion(balizas, real, ideal, centro, radio, mostrar=False):
   realMedida = real.senseDistance(balizas)
   realAngle  = real.senseAngle(balizas)
 
-  incremento = 0.1
-
   # Preparar una búsqueda también sobre orientación (no usar real.orientation)
-  n_orients = 36  # p.ej. 10º de resolución
-  orients = np.linspace(-pi, pi, n_orients, endpoint=False)
+  orients = np.linspace(-pi, pi, N_ORIENTACIONES, endpoint=False)
 
   # Bucle FOR coordenada Y
-  ys = np.arange(centro[1]-radio, centro[1]+radio+incremento/2, incremento)
-  xs = np.arange(centro[0]-radio, centro[0]+radio+incremento/2, incremento)
+  ys = np.arange(centro[1]-radio, centro[1]+radio+INCREMENTO_BUSQUEDA/2, INCREMENTO_BUSQUEDA)
+  xs = np.arange(centro[0]-radio, centro[0]+radio+INCREMENTO_BUSQUEDA/2, INCREMENTO_BUSQUEDA)
 
   # Valor global mínimo (x,y,orient)
   minError = float('inf')
@@ -159,6 +156,14 @@ HOLONOMICO = 1
 GIROPARADO = 0
 LONGITUD   = .2
 
+# Constantes de localización
+INCREMENTO_BUSQUEDA = 0.1   # Resolución espacial de la malla de búsqueda (metros)
+N_ORIENTACIONES = 36        # Número de orientaciones a probar (10º de resolución)
+CENTRO_INICIAL = [2.0, 2.0] # Centro inicial de búsqueda para localización
+RADIO_INICIAL = 3           # Radio inicial de búsqueda (cuadrado de lado 2*radio)
+RADIO_RELOCALIZACION = 1    # Radio de búsqueda durante relocalización dinámica
+
+
 # Definición de trayectorias:
 trayectorias = [
     [[1,3]],
@@ -195,7 +200,7 @@ random.seed(0)
 tic = time.time()
 
 # Localización inicial, depende de donde me digan que está el robot real
-localizacion(objetivos, real, ideal, centro=[2.0,2.0], radio=3, mostrar=MOSTRAR)
+localizacion(objetivos, real, ideal, centro=CENTRO_INICIAL, radio=RADIO_INICIAL, mostrar=MOSTRAR)
 
 tray_ideal = [ideal.pose()]  # Trayectoria percibida
 
@@ -226,7 +231,7 @@ for punto in objetivos:
     medidasIdeales = ideal.senseDistance(objetivos)            # lista de distancias medidos ahora
     error = np.mean(np.abs(np.subtract(medidasReales, medidasIdeales)))
     if error > DEVIATION:
-      localizacion(objetivos, real, ideal, centro=pose[:2], radio=1, mostrar=MOSTRAR)
+      localizacion(objetivos, real, ideal, centro=pose[:2], radio=RADIO_RELOCALIZACION, mostrar=MOSTRAR)
     
     tray_ideal.append(ideal.pose())
 
